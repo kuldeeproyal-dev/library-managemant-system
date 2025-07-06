@@ -1,3 +1,4 @@
+import pandas as pd
 def main():
     Books ={}
     load_books_data()
@@ -23,9 +24,7 @@ def main():
         return main()
     
 def load_books_data():
-    # This function would load book data from a file or database
-    # For now, we will just return an empty dictionary
-    pass
+    return pd.read_csv('books.csv')
 
 def show_menu():
     print ("\n---Libary Menu---")
@@ -58,5 +57,5 @@ def display_categories():
     pass
 
 def donate_book():
-    #this function will allow a user to donate a book to the library
+    #this function will allow a user to donate a book to the library 
     pass
