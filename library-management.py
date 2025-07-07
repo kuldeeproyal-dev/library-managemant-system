@@ -105,15 +105,30 @@ def return_book():
         print("❌ Book not found.")
 
 def search_available_books():
-    #this function will display all available books in the library
-    pass
+    print("\nSearch for a book:")
+    print("1. By Title")
+    print("2. By Author")
+    choice = input("Enter choice (1/2): ")
+
+    if choice == '1':
+        keyword = input("Enter part of the title: ").strip().lower()
+        result = df[df['title'].str.lower().str.contains(keyword)]
+
+    elif choice == '2':
+        keyword = input("Enter part of the author's name: ").strip().lower()
+        result = df[df['authors'].str.lower().str.contains(keyword)]
+
+    else:
+        print("❌ Invalid choice.")
+        return
+    if result.empty:
+        print("❌ No matching books found.")
+    else:
+        print("\n📚 Matching Books:")
+        print(result[['title', 'authors', 'available_copies']].head(10))
 
 def display_authors():
     #this function will display all authors of the books in the library
-    pass
-
-def display_categories():
-    #this function will display all categories of books in the library
     pass
 
 def donate_book():
