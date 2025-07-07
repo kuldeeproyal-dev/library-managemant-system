@@ -2,7 +2,11 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 def load_books_data():
-    df = pd.read_csv('books.csv')
+    try:
+        df = pd.read_csv('books.csv', on_bad_lines='skip')  # Skips rows with errors
+    except Exception as e:
+        print(f"Error loading CSV: {e}")
+        exit()
     if 'available_copies' not in df.columns:
         df['available_copies'] = 5
     if 'borrow_date' not in df.columns:
@@ -26,10 +30,10 @@ def take_book(df):
 
     if search_choice == '1':
         query = input("Enter book title: ").strip().lower()
-        results = df[df['title'].str.lower().str.contains(query)]
+        results = df[df['title'].str.lower().str.contains(query, na=False)]
     elif search_choice == '2':
         query = input("Enter author name: ").strip().lower()
-        results = df[df['authors'].str.lower().str.contains(query)]
+        results = df[df['authors'].str.lower().str.contains(query, na=False)]
     else:
         print("Invalid choice. Please try again.")
         return
@@ -40,23 +44,20 @@ def take_book(df):
 
     print("\n📚 Matching Books:")
     print(results[['title', 'authors', 'available_copies']].head(10))
-    book_borrowTitle = input("\nEnter the **exact title** to borrow: ").strip().lower()
-    try:
-        book = results[results['title'].str.lower() == book_borrowTitle]
-        if book.empty:
+    book_borrowTitle = input("Enter the title to borrow (partial or full): ").strip().lower()
+    matches = results[results['title'].str.lower().str.contains(book_borrowTitle, na=False)]
+    if matches.empty:
             print("Book not found. Please try again.")
             return
-        else:
-            idx = book.index[0]
+    else:
+            idx = matches.index[0]
             if df.at[idx, 'available_copies'] > 0:
                 df.at[idx, 'available_copies'] -= 1
                 df.at[idx, 'borrow_date'] = datetime.now().strftime('%Y-%m-%d')
-                print(f"✅ You have successfully borrowed '{book['title'].values[0]}' by {book['authors'].values[0]}.")
+                print(f"✅ You have successfully borrowed '{matches['title'].values[0]}' by {matches['authors'].values[0]}.")
                 print(f"Return it by: {(datetime.now() + timedelta(days=14)):%Y-%m-%d} to avoid penalties.")
             else:
                 print("Sorry, this book is currently not available.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
 
 def return_book(df):
     title = input("Enter the title to return: ").strip().lower()
@@ -66,14 +67,17 @@ def return_book(df):
         borrow_date_str = df.at[idx, 'borrow_date']
         if borrow_date_str:
             df.at[idx, 'available_copies'] += 1
-            borrow_date = datetime.strptime(borrow_date_str, "%Y-%m-%d")
-            days = (datetime.now() - borrow_date).days
-            df.at[idx, 'borrow_date'] = ""
-            if days > 14:
-                fine = (days - 14) * 5
-                print(f"⏳ Returned after {days} days. Fine: ₹{fine}")
-            else:
-                print(f"✅ Book returned on time in {days} days. No fine.")
+            try:
+                borrow_date = datetime.strptime(borrow_date_str, "%Y-%m-%d")
+                days = (datetime.now() - borrow_date).days
+                df.at[idx, 'borrow_date'] = ""
+                if days > 14:
+                    fine = (days - 14) * 5
+                    print(f"⏳ Returned after {days} days. Fine: ₹{fine}")
+                else:
+                    print(f"✅ Book returned on time in {days} days. No fine.")
+            except ValueError:
+                print("⚠️ Invalid borrow date format.")
         else:
             print("⚠️ No borrow record found. Book return accepted.")
     else:
@@ -87,10 +91,10 @@ def search_available_books(df):
 
     if choice == '1':
         keyword = input("Enter part of the title: ").strip().lower()
-        result = df[df['title'].str.lower().str.contains(keyword)]
+        result = df[df['title'].str.lower().str.contains(keyword, na=False)]
     elif choice == '2':
         keyword = input("Enter part of the author's name: ").strip().lower()
-        result = df[df['authors'].str.lower().str.contains(keyword)]
+        result = df[df['authors'].str.lower().str.contains(keyword, na=False)]
     else:
         print("❌ Invalid choice.")
         return
@@ -102,7 +106,7 @@ def search_available_books(df):
         print(result[['title', 'authors', 'available_copies']].head(10))
 
 def display_authors(df):
-    unique_authors = df['authors'].str.lower().dropna().unique()
+    unique_authors = df['authors'].dropna().str.lower().unique()
     print("📚 All authors:")
     for author in sorted(unique_authors):
         print(author.title())
